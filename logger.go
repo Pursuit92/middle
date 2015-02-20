@@ -15,3 +15,14 @@ func Logger(h http.Handler) http.Handler {
 		log.Printf("%s %d", reqLog, resp.Status)
 	})
 }
+
+func CustomLogger(l log.Logger) Middleware {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqLog := fmt.Sprintf("%s: %s %s %s", strings.Split(r.RemoteAddr, ":")[0], r.Method, r.URL.String(), r.Proto)
+			resp := NewSnifferWriter(w)
+			h.ServeHTTP(resp, r)
+			l.Printf("%s %d", reqLog, resp.Status)
+		})
+	}
+}
