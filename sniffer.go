@@ -5,6 +5,9 @@ import (
 	"net/http"
 )
 
+// SnifferWriter implements http.ResponseWriter while also allowing
+// introspection into what's being returned to the client. Useful
+// in middleware applications such as logging.
 type SnifferWriter struct {
 	w      http.ResponseWriter
 	Output bytes.Buffer
@@ -13,7 +16,7 @@ type SnifferWriter struct {
 }
 
 func NewSnifferWriter(w http.ResponseWriter) *SnifferWriter {
-	return &SnifferWriter{w: w}
+	return &SnifferWriter{w: w, Status: 200}
 }
 
 func (l *SnifferWriter) Header() http.Header {
