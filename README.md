@@ -70,4 +70,4 @@ l.WrapHandler(h)
 
 ### Godoc
 
-View the full godocs at (godoc.org)[https://godoc.org/github.com/Pursuit92/middle]
+View the full godocs at [godoc.org](https://godoc.org/github.com/Pursuit92/middle)
