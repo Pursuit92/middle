@@ -1,10 +1,35 @@
-package httputil
+package middle
 
 import (
 	"net/http"
 	"regexp"
 )
 
+// Limiter is a meta-middleware that limits when middleware
+// gets applied based on the URL path requested.
+// This is useful for filtering static content paths from logging middleware,
+// requiring login on every path but the login page, etc.
+type Limiter struct {
+	patterns []*regexp.Regexp
+	black    bool
+}
+
+// WrapWare implements the Meta interface for Limiter.
+func (l Limiter) WrapWare(m Ware) Ware {
+	return WareFunc(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			matched, _ := matchAny(l.patterns, r.URL.Path)
+			if (!l.black && matched) || (l.black && !matched) {
+				m.WrapHandler(h).ServeHTTP(w, r)
+			} else {
+				h.ServeHTTP(w, r)
+			}
+		})
+	})
+}
+
+// convert a slice of strings to a slice of regexp matchers.
+// panics if any fail to compile.
 func makeMatchers(patterns []string) []*regexp.Regexp {
 	matchers := make([]*regexp.Regexp, len(patterns))
 	for i, v := range patterns {
@@ -13,6 +38,8 @@ func makeMatchers(patterns []string) []*regexp.Regexp {
 	return matchers
 }
 
+// tests s against a slice of regexps. Returns true on first match,
+// false otherwise
 func matchAny(ms []*regexp.Regexp, s string) (bool, int) {
 	for n, v := range ms {
 		if v.MatchString(s) {
@@ -22,33 +49,18 @@ func matchAny(ms []*regexp.Regexp, s string) (bool, int) {
 	return false, -1
 }
 
-// Run middleware only on non-matching paths
-func ExcludeHandler(handler func(http.Handler) http.Handler, patterns ...string) func(http.Handler) http.Handler {
+// Exclude returns a Limiter that will only run middleware on paths that don't
+// match any of the listed regular expression patterns.
+// Panics if one of the expressions fails to compile.
+func Exclude(patterns ...string) *Limiter {
 	matchers := makeMatchers(patterns)
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			matched, _ := matchAny(matchers, r.URL.Path)
-			if !matched {
-				handler(h).ServeHTTP(w, r)
-			} else {
-				h.ServeHTTP(w, r)
-			}
-
-		})
-	}
+	return &Limiter{patterns: matchers, black: true}
 }
 
-// Run middleware only on matching paths
-func AllowHandler(handler func(http.Handler) http.Handler, patterns ...string) func(http.Handler) http.Handler {
+// Allow returns a Limiter that will only run middleware on paths that
+// match one of the listed regular expression patterns.
+// Panics if one of the expressions fails to compile.
+func Allow(patterns ...string) *Limiter {
 	matchers := makeMatchers(patterns)
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			matched, _ := matchAny(matchers, r.URL.Path)
-			if matched {
-				handler(h).ServeHTTP(w, r)
-			} else {
-				h.ServeHTTP(w, r)
-			}
-		})
-	}
+	return &Limiter{patterns: matchers, black: false}
 }
