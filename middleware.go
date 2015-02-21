@@ -23,6 +23,15 @@ func (f WareFunc) WrapHandler(h http.Handler) http.Handler {
 	return f(h)
 }
 
+// WareFuncs turns a slice of WareFunc into a slice of Ware
+func WareFuncs(fs ...WareFunc) []Ware {
+	warez := make([]Ware, len(fs))
+	for i, v := range fs {
+		warez[i] = v
+	}
+	return warez
+}
+
 // WareFuncFunc is for when you insist on defining your middleware as
 // func(func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request)
 // for whatever reason. It's got a funny name because you made poor choices.
