@@ -9,13 +9,13 @@ import (
 // gets applied based on the URL path requested.
 // This is useful for filtering static content paths from logging middleware,
 // requiring login on every path but the login page, etc.
-type Limiter struct {
+type limiter struct {
 	patterns []*regexp.Regexp
 	black    bool
 }
 
 // WrapWare implements the Meta interface for Limiter.
-func (l Limiter) WrapWare(m Ware) Ware {
+func (l limiter) WrapWare(m Ware) Ware {
 	return WareFunc(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			matched, _ := matchAny(l.patterns, r.URL.Path)
@@ -52,15 +52,15 @@ func matchAny(ms []*regexp.Regexp, s string) (bool, int) {
 // Exclude returns a Limiter that will only run middleware on paths that don't
 // match any of the listed regular expression patterns.
 // Panics if one of the expressions fails to compile.
-func Exclude(patterns ...string) *Limiter {
+func Exclude(patterns ...string) MetaFunc {
 	matchers := makeMatchers(patterns)
-	return &Limiter{patterns: matchers, black: true}
+	return limiter{patterns: matchers, black: true}.WrapWare
 }
 
 // Allow returns a Limiter that will only run middleware on paths that
 // match one of the listed regular expression patterns.
 // Panics if one of the expressions fails to compile.
-func Allow(patterns ...string) *Limiter {
+func Allow(patterns ...string) MetaFunc {
 	matchers := makeMatchers(patterns)
-	return &Limiter{patterns: matchers, black: false}
+	return limiter{patterns: matchers, black: false}.WrapWare
 }

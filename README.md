@@ -27,14 +27,14 @@ var identityWare Ware = WareFunc(identity)
 
 Middlewares implemented in this manner can easily be chained using the
 ```ChainMiddleware``` function. This expects middlewares to be ordered
-innermost-first.
+outermost-first.
 
 ```go
 var m1, m2, m3 Ware
 
 combined := ChainMiddleware(m1, m2, m3)
 // combined.WrapHandler(h) is the equivalent of
-// m3.WrapHandler(m2.WrapHandler(m1.WrapHandler(h)))
+// m1(m2(m3(h)))
 ```
 
 ### Meta-middleware
